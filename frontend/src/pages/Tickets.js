@@ -45,10 +45,6 @@ const Tickets = () => {
     }
   };
 
-  // const filteredTickets = tickets?.filter((ticket) => {
-  //   ticket?.corporate?.toLowerCase()?.includes(search?.toLowerCase())
-  // });
-
   const filteredTickets = tickets?.filter((ticket) => {
     const searchText = search?.toLowerCase();
 

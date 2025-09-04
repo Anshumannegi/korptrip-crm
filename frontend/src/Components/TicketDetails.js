@@ -16,6 +16,8 @@ const TicketDetails = () => {
   const [subTicketDetails, setSubTicketDetails] = useState({});
   const [showInput, setShowInput] = useState(false);
   const [inputValue, setInputValue] = useState("");
+  const [userDetails, setUserDetails] = useState({});
+  const [isAssigned, setIsAssigned] = useState(false);
 
   const navigate = useNavigate();
 
@@ -66,11 +68,17 @@ const TicketDetails = () => {
     if (selectedUser === "") {
       setAssignQueryTo(null);
       handleAssignQuery(null);
+      setTimeout(() => {
+        handleSuccess("Query assigned to none");
+      }, 100);
     } else {
       setAssignQueryTo(selectedUser);
       const userId = allUser?.find((user) => user?.name === selectedUser)?._id;
       if (userId) {
         handleAssignQuery(userId);
+        setTimeout(() => {
+          handleSuccess("Query Successfully assigned");
+        }, 100);
         console.log(`ticket ${id} assigned to user ${selectedUser}`);
       }
     }
@@ -110,8 +118,7 @@ const TicketDetails = () => {
       }
 
       const result = await response.json();
-      // console.log(result.message, "handleAssignStatus");
-      // console.log(ticketDetails);
+
       getTicketDetails();
     } catch (error) {
       console.log(error);
@@ -124,9 +131,15 @@ const TicketDetails = () => {
     if (statusValue === "") {
       setStatus("Pending");
       handleAssignStatus("Pending");
+      setTimeout(() => {
+        handleSuccess("Query status is Pending");
+      }, 100);
     } else {
       setStatus(statusValue);
       handleAssignStatus(statusValue);
+      setTimeout(() => {
+        handleSuccess(`Query status is ${statusValue}`);
+      }, 100);
     }
   };
 
@@ -164,6 +177,7 @@ const TicketDetails = () => {
 
   useEffect(() => {
     getAllUserDetails();
+    getUserDetails();
   }, []);
 
   const getTicketDetails = async () => {
@@ -192,6 +206,7 @@ const TicketDetails = () => {
 
       const result = await response.json();
       const ticket = result?.data;
+      console.log("Ticket Details: ", ticket);
       if (ticket) {
         const formattedDate = new Date(ticket.date_of_travel)
           .toISOString()
@@ -305,8 +320,12 @@ const TicketDetails = () => {
 
       const result = await response.json();
       console.log(result.data);
+      if (response?.ok) {
+        setTimeout(() => {
+          handleSuccess("Ticket Updated Successfully");
+        }, 100);
+      }
       getTicketDetails();
-      handleSuccess("Ticket Updated Successfully");
       setIsOpen(false);
     } catch (error) {
       handleError(error);
@@ -315,7 +334,6 @@ const TicketDetails = () => {
   };
 
   const handleDeleteTicket = async () => {
-    // console.log("Delete");
     try {
       const url = `http://localhost:8080/ticket/deleteTicket/${id}`;
       const authState = JSON.parse(localStorage.getItem("authState"));
@@ -336,7 +354,11 @@ const TicketDetails = () => {
       });
       const result = await response.json();
       console.log(result);
-      handleSuccess("Ticket Deleted Successfully");
+      if (response?.ok) {
+        setTimeout(() => {
+          handleSuccess("Ticket Deleted Successfully");
+        }, 100);
+      }
       navigate("/tickets");
     } catch (error) {
       handleError(error);
@@ -375,6 +397,11 @@ const TicketDetails = () => {
 
       const data = await response.json();
       console.log("SubTicket Added:", data);
+      if (response.ok) {
+        setTimeout(() => {
+          handleSuccess("Sub Query added Successfully");
+        }, 100);
+      }
 
       // refresh list
       getSubTicketDetails();
@@ -384,6 +411,47 @@ const TicketDetails = () => {
     }
   };
 
+  const getUserDetails = async () => {
+    try {
+      const url = `http://localhost:8080/user/getUserDetails`;
+      const authState = JSON.parse(localStorage.getItem("authState"));
+      if (!authState?.token) {
+        console.log("Auth token not found");
+        return;
+      }
+      const headers = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authState?.token}`,
+      };
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      const result = await response.json();
+      console.log("Single User Details", result);
+      setUserDetails(result?.data);
+    } catch (error) {
+      console.log("Error: ", error.message);
+      handleError(error);
+    }
+  };
+
+  useEffect(() => {
+    if (ticketDetails?.assignedTo && userDetails?._id) {
+      const assigned =
+        ticketDetails.assignedTo.toString() === userDetails._id.toString();
+      console.log("Assign", assigned);
+      setIsAssigned(assigned);
+    } else {
+      setIsAssigned(false);
+    }
+  }, [ticketDetails, userDetails]);
+
   return (
     <div className="bg-gray-50 p-8 w-full flex ">
       <div className="w-[70%]">
@@ -391,51 +459,52 @@ const TicketDetails = () => {
           Sub Queries
         </h2>
         <div className="mt-10">
-          {!showInput ? (
-            <button
-              className="bg-indigo-400 py-2 px-4 text-white rounded-lg font-bold my-1"
-              onClick={() => setShowInput(true)}
-            >
-              Add Sub Query
-            </button>
-          ) : (
-            <div className="mt-3 flex gap-2">
-              <textarea
-                ref={inputRef}
-                placeholder="Enter sub-ticket..."
-                onChange={(e) => setInputValue(e.target.value)}
-                className="flex-1 border rounded-md px-2 py-1 text-sm"
-                value={inputValue}
-                name="inputValue"
-              ></textarea>
+          {(userDetails?.isAdmin || isAssigned) &&
+            (!showInput ? (
               <button
-                onClick={() => {
-                  if (inputValue.trim()) {
-                    addSubTicket(id, "Ticket", inputValue); // 👈 parentType is Ticket here
+                className="bg-indigo-400 py-2 px-4 text-white rounded-lg font-bold my-1"
+                onClick={() => setShowInput(true)}
+              >
+                Add Sub Query
+              </button>
+            ) : (
+              <div className="mt-3 flex gap-2">
+                <textarea
+                  ref={inputRef}
+                  placeholder="Enter sub-ticket..."
+                  onChange={(e) => setInputValue(e.target.value)}
+                  className="flex-1 border rounded-md px-2 py-1 text-sm"
+                  value={inputValue}
+                  name="inputValue"
+                ></textarea>
+                <button
+                  onClick={() => {
+                    if (inputValue.trim()) {
+                      addSubTicket(id, "Ticket", inputValue); // 👈 parentType is Ticket here
+                      setInputValue("");
+                      setShowInput(false);
+                    }
+                  }}
+                  disabled={!inputValue.trim()}
+                  className={`px-3 py-1  text-white rounded-md text-sm ${
+                    inputValue.trim()
+                      ? " bg-green-500 hover:bg-green-600"
+                      : "bg-gray-400 cursor-not-allowed"
+                  }`}
+                >
+                  Submit
+                </button>
+                <button
+                  onClick={() => {
                     setInputValue("");
                     setShowInput(false);
-                  }
-                }}
-                disabled={!inputValue.trim()}
-                className={`px-3 py-1  text-white rounded-md text-sm ${
-                  inputValue.trim()
-                    ? " bg-green-500 hover:bg-green-600"
-                    : "bg-gray-400 cursor-not-allowed"
-                }`}
-              >
-                Submit
-              </button>
-              <button
-                onClick={() => {
-                  setInputValue("");
-                  setShowInput(false);
-                }}
-                className="px-3 py-1 bg-red-400 text-white rounded-md hover:bg-red-500 text-sm"
-              >
-                Cancel
-              </button>
-            </div>
-          )}
+                  }}
+                  className="px-3 py-1 bg-red-400 text-white rounded-md hover:bg-red-500 text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            ))}
 
           {subTicketDetails && subTicketDetails?.children?.length > 0 ? (
             subTicketDetails?.children?.map((subTicket) => (
@@ -444,6 +513,8 @@ const TicketDetails = () => {
                 subTicket={subTicket}
                 addSubTicket={addSubTicket}
                 getSubTicketDetails={getSubTicketDetails}
+                isAdmin={userDetails?.isAdmin}
+                isAssigned={isAssigned}
               />
             ))
           ) : (
@@ -489,10 +560,6 @@ const TicketDetails = () => {
             },
             { label: "Budget", value: ticketDetails?.budget },
             { label: "Remark", value: ticketDetails?.remark },
-            // {
-            //   label: "Status",
-            //   value: ticketDetails?.isCompleted,
-            // },
           ].map((field, index) => (
             <div key={index} className="text-lg font-semibold text-gray-700">
               {field.label}:
@@ -521,7 +588,7 @@ const TicketDetails = () => {
                 "Pending",
                 "In Progress",
                 "Completed",
-                "OnHold",
+                "On Hold",
                 "Cancelled",
                 "Awaiting Review",
                 "Assigned",
@@ -546,7 +613,7 @@ const TicketDetails = () => {
             Edit Query
           </button>
 
-          {user.isAdmin && (
+          {user?.isAdmin && (
             <button
               className="py-2 px-10 bg-red-600 rounded-lg shadow-lg text-white font-semibold text-lg hover:bg-red-500 transition-all"
               onClick={handleDeleteTicket}
@@ -555,7 +622,7 @@ const TicketDetails = () => {
             </button>
           )}
         </div>
-        {user.isAdmin && (
+        {user?.isAdmin && (
           <div className="my-6 flex flex-col gap-3 justify-center items-center  sm:flex-row  sm:justify-center">
             <label htmlFor="dropdown" className="font-semibold text-xl">
               Assign Query -:{" "}

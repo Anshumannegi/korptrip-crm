@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
-import Tickets from "./pages/Tickets";
+// import Tickets from "./pages/Tickets";
 import InvoiceForm from "./pages/InvoiceForm";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -14,6 +14,12 @@ import Unauthorized from "./Components/Unauthorized";
 import ProtectedRoute from "./Components/ProtectedRoute";
 import RedirectAuthenticated from "./Components/RedirectAuthenticated";
 import NotFound from "./Components/NotFound";
+import { ToastContainer } from "react-toastify";
+import { lazy, Suspense } from "react";
+import ShimmerTable from "./Components/ShimmerTable";
+
+// Lazy Loading
+const Tickets = lazy(() => import("./pages/Tickets.js"));
 
 function App() {
   return (
@@ -38,7 +44,14 @@ function App() {
 
         {/* Protected Routes  */}
         <Route element={<ProtectedRoute />}>
-          <Route path={"/tickets"} element={<Tickets />} />
+          <Route
+            path={"/tickets"}
+            element={
+              <Suspense fallback={<ShimmerTable />}>
+                <Tickets />
+              </Suspense>
+            }
+          />
           <Route path={"/invoiceForm"} element={<InvoiceForm />} />
           <Route path={"/addTicket"} element={<AddTicketForm />} />
           <Route path={"/ticketDetails/:id"} element={<TicketDetails />} />
@@ -47,6 +60,7 @@ function App() {
         {/* Default Route  */}
         <Route path="*" element={<NotFound />} />
       </Routes>
+      <ToastContainer />
     </div>
   );
 }

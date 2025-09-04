@@ -51,7 +51,6 @@ const AddTicketForm = () => {
       const { success, message, error } = result;
 
       if (success) {
-        handleSuccess(message);
         setFormData({
           query_type: "",
           corporate: "",
@@ -72,6 +71,7 @@ const AddTicketForm = () => {
           isCompleted: false,
         });
         setTimeout(() => {
+          handleSuccess("New Ticket added Successfully");
           navigate("/tickets");
         }, 1000);
       } else {

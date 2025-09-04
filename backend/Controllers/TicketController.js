@@ -278,7 +278,7 @@ export const addSubTicket = async (req, res) => {
 
     // Authorization Check
     if (user.isAdmin) {
-      console.log("User is Admin");
+      // console.log("User is Admin");
     } else {
       if (user._id.toString() !== rootTicket.assignedTo.toString()) {
         return res.status(403).json({
@@ -353,7 +353,7 @@ export const updateSubTicket = async (req, res) => {
     }
 
     if (user.isAdmin) {
-      console.log("admin");
+      // console.log("admin");
     } else {
       if (user._id.toString() !== rootTicket.assignedTo.toString()) {
         return res.status(403).json({
@@ -440,14 +440,6 @@ export const deleteSubTicket = async (req, res) => {
       }
     }
 
-    // } else {
-    //   parent = await SubTicketModel.findById(parentId);
-    //   while (parent && parent.parentType === "SubTicket") {
-    //     parent = await SubTicketModel.findById(parentId);
-    //   }
-    //   rootTicket = await TicketModel.findById(parent.parentId);
-    // }
-
     if (!rootTicket) {
       return res
         .status(400)
@@ -455,7 +447,7 @@ export const deleteSubTicket = async (req, res) => {
     }
 
     if (user.isAdmin) {
-      console.log("admin");
+      // console.log("admin");
     } else {
       if (user._id.toString() !== rootTicket.assignedTo.toString()) {
         return res.status(403).json({

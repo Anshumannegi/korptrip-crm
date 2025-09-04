@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useRef } from "react";
-import { handleError } from "../utils";
+import { handleError, handleSuccess } from "../utils";
 import { useParams } from "react-router-dom";
 
 const SubTicketItem = ({
   subTicket,
   addSubTicket,
   getSubTicketDetails,
+  isAdmin,
+  isAssigned,
   level = 0,
 }) => {
   const { id } = useParams();
@@ -72,6 +74,12 @@ const SubTicketItem = ({
       }
 
       console.log(data.message);
+
+      if (response?.ok) {
+        setTimeout(() => {
+          handleSuccess("Sub Query Deleted Successfully");
+        }, 100);
+      }
       getSubTicketDetails();
 
       // Reset input
@@ -116,6 +124,11 @@ const SubTicketItem = ({
       const data = await response.json();
       console.log("updated Data", data);
 
+      if (response?.ok) {
+        setTimeout(() => {
+          handleSuccess("Sub Query Updated Successfully");
+        }, []);
+      }
       setIsEditing(false);
       getSubTicketDetails();
 
@@ -187,23 +200,26 @@ const SubTicketItem = ({
           </ul>
         )}
         {/* Actions */}
-        <div className="mt-2 flex gap-4 text-sm text-gray-500">
-          <button
-            onClick={() => setShowInput(!showInput)}
-            className="hover:text-green-600"
-          >
-            Add
-          </button>
-          <button
-            className="hover:text-purple-600"
-            onClick={handleStartEditing} // ✅ use the new function
-          >
-            Update
-          </button>
-          <button className="hover:text-red-600" onClick={deleteSubTicket}>
-            Delete
-          </button>
-        </div>
+
+        {(isAdmin || isAssigned) && (
+          <div className="mt-2 flex gap-4 text-sm text-gray-500">
+            <button
+              onClick={() => setShowInput(!showInput)}
+              className="hover:text-green-600"
+            >
+              Add
+            </button>
+            <button
+              className="hover:text-purple-600"
+              onClick={handleStartEditing} // ✅ use the new function
+            >
+              Update
+            </button>
+            <button className="hover:text-red-600" onClick={deleteSubTicket}>
+              Delete
+            </button>
+          </div>
+        )}
         {/* Input field for adding sub-ticket */}
         {showInput && (
           <div ref={inputRef} className="mt-3 flex gap-2">
@@ -243,6 +259,8 @@ const SubTicketItem = ({
               subTicket={child}
               addSubTicket={addSubTicket}
               getSubTicketDetails={getSubTicketDetails}
+              isAdmin={isAdmin}
+              isAssigned={isAssigned}
               level={level + 1}
             />
           ))}
