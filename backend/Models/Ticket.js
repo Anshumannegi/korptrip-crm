@@ -114,6 +114,11 @@ const TicketSchema = new mongoose.Schema(
       ref: "users",
       default: null,
     },
+    priority: {
+      type: String,
+      enum: ["low", "normal", "high", "urgent"],
+      default: "normal",
+    },
   },
   { timestamps: true }
 );

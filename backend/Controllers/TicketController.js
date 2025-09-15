@@ -250,6 +250,36 @@ export const changeStatus = async (req, res) => {
   }
 };
 
+export const changePriorityOfTicket = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { priorityValue } = req.body;
+
+    if (!id) {
+      return res.status(404).json({ message: "id not found", success: false });
+    }
+    const ticketDetails = await TicketModel.findById(id);
+    if (!ticketDetails) {
+      return res
+        .status(400)
+        .json({ message: "Ticket not found", success: false });
+    }
+    if (!priorityValue) {
+      return res
+        .status(400)
+        .json({ message: "Priority value is required", success: false });
+    }
+    ticketDetails.priority = priorityValue;
+    await ticketDetails.save();
+    res
+      .status(200)
+      .json({ message: "Ticket Priority changed Successfully", success: true });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal Server Error", success: false });
+  }
+};
+
 // Sub-Tickets
 export const addSubTicket = async (req, res) => {
   try {
@@ -558,6 +588,41 @@ export const getParticularNLevelSubTicket = async (req, res) => {
       message: "Server Error while fetching particular N-Level Sub Ticket",
       success: false,
       error: error.message,
+    });
+  }
+};
+
+export const changePriorityOfSubTicket = async (req, res) => {
+  try {
+    const { subTicketId } = req.query;
+    const { priorityValue } = req.body;
+    if (!subTicketId) {
+      return res
+        .status(404)
+        .json({ message: "SubTicket Id not found", success: false });
+    }
+    const subTicketDetails = await SubTicketModel.findById(subTicketId);
+    if (!subTicketDetails) {
+      return res
+        .status(404)
+        .json({ message: "Sub Ticket not found", success: false });
+    }
+    if (!priorityValue) {
+      return res
+        .status(400)
+        .json({ message: "Priority value not found", success: false });
+    }
+    subTicketDetails.priority = priorityValue;
+    await subTicketDetails.save();
+
+    res
+      .status(200)
+      .json({ message: "Priority changed Successfully", success: true });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: "Server Error while changing Ticket Priority",
+      success: false,
     });
   }
 };

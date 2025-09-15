@@ -3,6 +3,9 @@ import { handleError, handleSuccess } from "../utils";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import SubTicketItem from "./SubTicketItem";
+import SubTicketShimmer from "./SubTicketShimmer";
+import { FaFilter } from "react-icons/fa";
+import { IoMdArrowDropdown } from "react-icons/io";
 
 const TicketDetails = () => {
   const { id } = useParams();
@@ -18,11 +21,44 @@ const TicketDetails = () => {
   const [inputValue, setInputValue] = useState("");
   const [userDetails, setUserDetails] = useState({});
   const [isAssigned, setIsAssigned] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [priorityDropDown, setPriorityDropDown] = useState(false);
+  const [filteredSubTickets, setFilteredSubTickets] = useState({});
+  const [filterPriority, setFilterPriority] = useState("");
 
   const navigate = useNavigate();
 
   const [ticketDetails, setTicketDetails] = useState();
+  const [priority, setPriority] = useState(ticketDetails?.priority);
+
   const { user, token } = useSelector((store) => store.auth);
+
+  const filterByPriority = (tickets, priority) => {
+    if (!tickets) return [];
+
+    // If tickets is a single object, wrap in array
+    const ticketArray = Array.isArray(tickets)
+      ? tickets
+      : tickets.children || [];
+
+    return ticketArray
+      .map((ticket) => {
+        const filteredChildren = filterByPriority(ticket.children, priority);
+
+        if (ticket.priority === priority || filteredChildren.length > 0) {
+          return { ...ticket, children: filteredChildren };
+        }
+        return null;
+      })
+      .filter(Boolean);
+  };
+
+  useEffect(() => {
+    const filtered = filterByPriority(subTicketDetails, filterPriority);
+    console.log(filtered, "checkingggggg");
+    setFilteredSubTickets(filtered);
+  }, [filterPriority]);
 
   const handleAssignQuery = async (UserId) => {
     try {
@@ -235,6 +271,7 @@ const TicketDetails = () => {
           remark: ticket?.remark,
           isCompleted: ticket?.isCompleted,
           assignedTo: ticket?.assignedTo,
+          priority: ticket?.priority,
         });
 
         const userName = allUser?.find(
@@ -243,7 +280,8 @@ const TicketDetails = () => {
 
         setAssignQueryTo(userName || null);
         // console.log(ticket.isCompleted);
-        setStatus(ticket.isCompleted);
+        setStatus(ticket?.isCompleted);
+        setPriority(ticket?.priority);
       }
     } catch (error) {
       console.log(error);
@@ -253,6 +291,7 @@ const TicketDetails = () => {
 
   const getSubTicketDetails = async () => {
     try {
+      setLoading(true);
       const url = `http://localhost:8080/ticket/getParticularNLevelSubTicket/${id}`;
       const authState = JSON.parse(localStorage.getItem("authState"));
 
@@ -275,9 +314,11 @@ const TicketDetails = () => {
         throw new Error(`HTTP error ! Status: ${response.status}`);
       }
       const subTickets = await response.json();
-      // console.log(subTickets);
+      console.log("Sub Tickets", subTickets);
       setSubTicketDetails(subTickets);
+      setLoading(false);
     } catch (error) {
+      setLoading(false);
       console.log(error);
       handleError(error);
     }
@@ -362,6 +403,89 @@ const TicketDetails = () => {
       navigate("/tickets");
     } catch (error) {
       handleError(error);
+    }
+  };
+
+  // const assignPriority = async () => {
+  //   try {
+  //     const url = `http://localhost:8080/ticket/changePriorityOfTicket/${id}`;
+  //     const authState = JSON.parse(localStorage.getItem("authState"));
+  //     if (!authState?.token) {
+  //       console.log("Token is required");
+  //       return;
+  //     }
+  //     const headers = {
+  //       "Content-Type": "application/json",
+  //       Authorization: `Bearer ${authState?.token}`,
+  //     };
+
+  //     const body = {
+  //       priorityValue: priority,
+  //     };
+
+  //     const response = await fetch(url, {
+  //       method: "PUT",
+  //       headers,
+  //       body: JSON.stringify(body),
+  //     });
+  //     const result = await response.json();
+  //     if (response?.ok) {
+  //       setTimeout(() => {
+  //         handleSuccess("Ticket priority set successfully.");
+  //       }, 200);
+  //     }
+  //     getTicketDetails();
+  //   } catch (error) {
+  //     console.log(error);
+  //     handleError(error);
+  //   }
+  // };
+
+  // const handleAssignPriority = (e) => {
+  //   setPriority(e.target.value);
+  // };
+
+  // useEffect(() => {
+  //   assignPriority();
+  // }, [priority]);
+
+  const handleAssignPriority = (e) => {
+    const newPriority = e.target.value;
+    setPriority(newPriority);
+    assignPriority(newPriority); // <-- call API directly
+  };
+
+  const assignPriority = async (newPriority) => {
+    try {
+      const url = `http://localhost:8080/ticket/changePriorityOfTicket/${id}`;
+      const authState = JSON.parse(localStorage.getItem("authState"));
+      if (!authState?.token) {
+        console.log("Token is required");
+        return;
+      }
+
+      const headers = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authState?.token}`,
+      };
+
+      const body = { priorityValue: newPriority };
+
+      const response = await fetch(url, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(body),
+      });
+      const result = await response.json();
+
+      if (response?.ok) {
+        handleSuccess(`Ticket priority set to "${newPriority}" successfully.`);
+        // update UI instantly, no need to wait for getTicketDetails
+        setPriority(newPriority);
+      }
+    } catch (error) {
+      console.log(error);
+      handleError("Failed to update ticket priority.");
     }
   };
 
@@ -458,15 +582,80 @@ const TicketDetails = () => {
         <h2 className="text-3xl text-center font-bold text-indigo-600">
           Sub Queries
         </h2>
+
         <div className="mt-10">
           {(userDetails?.isAdmin || isAssigned) &&
             (!showInput ? (
-              <button
-                className="bg-indigo-400 py-2 px-4 text-white rounded-lg font-bold my-1"
-                onClick={() => setShowInput(true)}
-              >
-                Add Sub Query
-              </button>
+              <div className="flex justify-between items-center">
+                <div>
+                  <button
+                    className="bg-indigo-400 py-2 px-4 text-white rounded-lg font-bold my-1"
+                    onClick={() => setShowInput(true)}
+                  >
+                    Add Sub Query
+                  </button>
+                </div>
+                <div className="pr-6 relative">
+                  <FaFilter
+                    size={24}
+                    color="blue"
+                    className="cursor-pointer"
+                    onClick={() => setIsFilterOpen(!isFilterOpen)}
+                  />
+                  {isFilterOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                      <ul className="py-2 text-sm text-gray-700">
+                        <li className="px-4 py-1 hover:bg-gray-100 cursor-pointer">
+                          <div className="flex justify-between items-center">
+                            <span>Filter By Priority</span>
+                            <IoMdArrowDropdown
+                              size={16}
+                              className={`ml-2 transform transition-transform duration-200 ${
+                                priorityDropDown ? "-rotate-180" : "rotate-0"
+                              }`}
+                              onClick={() =>
+                                setPriorityDropDown(!priorityDropDown)
+                              }
+                            />
+                          </div>
+
+                          {priorityDropDown && (
+                            <ul className="mt-2 ml-4 space-y-1 text-gray-600">
+                              <li
+                                className="hover:text-blue-600 cursor-pointer"
+                                onClick={() => {
+                                  setFilterPriority("high");
+                                  console.log("high");
+                                }}
+                              >
+                                High
+                              </li>
+                              <li
+                                className="hover:text-blue-600 cursor-pointer"
+                                onClick={() => setFilterPriority("normal")}
+                              >
+                                Normal
+                              </li>
+                              <li
+                                className="hover:text-blue-600 cursor-pointer"
+                                onClick={() => setFilterPriority("low")}
+                              >
+                                Low
+                              </li>
+                              <li
+                                className="hover:text-blue-600 cursor-pointer"
+                                onClick={() => setFilterPriority("urgent")}
+                              >
+                                Urgent
+                              </li>
+                            </ul>
+                          )}
+                        </li>
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
             ) : (
               <div className="mt-3 flex gap-2">
                 <textarea
@@ -506,7 +695,11 @@ const TicketDetails = () => {
               </div>
             ))}
 
-          {subTicketDetails && subTicketDetails?.children?.length > 0 ? (
+          {loading ? (
+            <>
+              <SubTicketShimmer />
+            </>
+          ) : subTicketDetails && subTicketDetails?.children?.length > 0 ? (
             subTicketDetails?.children?.map((subTicket) => (
               <SubTicketItem
                 key={subTicket._id}
@@ -582,7 +775,7 @@ const TicketDetails = () => {
               value={status}
               onChange={handleStatusChange}
               disabled={user?.name !== assignQueryTo}
-              className="font-normal text-gray-500 border border-black px-3 py-1 rounded-lg"
+              className="font-normal text-gray-500 border border-black px-3 py-1 rounded-lg disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
             >
               {[
                 "Pending",
@@ -596,6 +789,31 @@ const TicketDetails = () => {
                 "Failed",
                 "Deferred",
               ].map((val, index) => (
+                <option value={val} key={index}>
+                  {val}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="">
+            <label
+              htmlFor="priority"
+              className="text-lg font-semibold text-gray-700 mr-3"
+            >
+              Priority:{" "}
+            </label>
+            <select
+              name="priority"
+              id="priority"
+              value={priority}
+              onChange={handleAssignPriority}
+              disabled={
+                !JSON.parse(localStorage.getItem("authState"))?.user?.isAdmin
+              }
+              className="font-normal text-gray-500 border border-black px-3 py-1 my-2 rounded-lg
+             disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
+            >
+              {["low", "normal", "high", "urgent"].map((val, index) => (
                 <option value={val} key={index}>
                   {val}
                 </option>

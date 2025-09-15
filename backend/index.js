@@ -6,6 +6,7 @@ import ProductRouter from "./Routes/ProductRouter.js";
 import TicketRouter from "./Routes/TicketRouter.js";
 import UserRouter from "./Routes/UserRouter.js";
 import db from "./Models/db.js";
+import TicketModal from "./Models/Ticket.js";
 
 dotenv.config();
 
@@ -21,6 +22,21 @@ app.use("/user", UserRouter);
 
 app.get("/ping", (req, res) => {
   res.send("PONG");
+});
+
+app.get("/fixPriority", async (req, res) => {
+  try {
+    const result = await TicketModal.updateMany(
+      {
+        priority: "low",
+      },
+      { $set: { priority: "normal" } }
+    );
+    res.json({ updated: result.modifiedCount });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "eror", success: false });
+  }
 });
 
 app.listen(PORT, () => {

@@ -17,6 +17,7 @@ import NotFound from "./Components/NotFound";
 import { ToastContainer } from "react-toastify";
 import { lazy, Suspense } from "react";
 import ShimmerTable from "./Components/ShimmerTable";
+import "react-toastify/dist/ReactToastify.css";
 
 // Lazy Loading
 const Tickets = lazy(() => import("./pages/Tickets.js"));

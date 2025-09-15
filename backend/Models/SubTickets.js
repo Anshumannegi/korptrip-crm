@@ -20,6 +20,11 @@ const SubTicketsSchema = new mongoose.Schema(
       enum: ["Ticket", "SubTicket"],
       required: true,
     },
+    priority: {
+      type: String,
+      enum: ["low", "normal", "high", "urgent"],
+      default: "normal",
+    },
   },
   { timestamps: true }
 );

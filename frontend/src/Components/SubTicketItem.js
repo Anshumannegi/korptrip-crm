@@ -16,6 +16,9 @@ const SubTicketItem = ({
   const [children, setChildren] = useState(subTicket?.children || []);
   const [isEditing, setIsEditing] = useState(false);
   const [originalValue, setOriginalValue] = useState("");
+  const [subTicketPriority, setSubTicketPriority] = useState(
+    subTicket?.priority
+  );
   const inputRef = useRef(null);
   const textAreaRef = useRef(null);
 
@@ -160,6 +163,46 @@ const SubTicketItem = ({
     setShowInput(false);
   };
 
+  const handlePriorityChangeForSubTicket = async (newPriority) => {
+    try {
+      const url = `http://localhost:8080/ticket/changePriorityOfSubTicket?subTicketId=${subTicket?._id}`;
+      const authState = JSON.parse(localStorage.getItem("authState"));
+      if (!authState?.token) {
+        console.log("Auth token not found");
+        return;
+      }
+      const headers = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authState?.token}`,
+      };
+      const body = {
+        priorityValue: newPriority,
+      };
+
+      const response = await fetch(url, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add sub ticket");
+      }
+
+      const data = await response.json();
+      console.log("Priority changed successfully");
+      if (response?.ok) {
+        setTimeout(() => {
+          handleSuccess("Sub-Ticket priority set successfully.");
+        }, 200);
+      }
+      getSubTicketDetails();
+    } catch (error) {
+      console.log(error);
+      handleError(error);
+    }
+  };
+
   // when user clicks update → store original value
   const handleStartEditing = () => {
     setInputValue(subTicket?.subTicketText || "");
@@ -172,19 +215,39 @@ const SubTicketItem = ({
     <div className={`ml-4 mt-3`}>
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-3 hover:shadow-md transition cursor-pointer">
         {/* Header row */}
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center text-sm font-bold">
-            {subTicket?.createdBy?.name
-              ? subTicket.createdBy.name[0].toUpperCase()
-              : "U"}
+        <div className="flex justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center text-sm font-bold">
+              {subTicket?.createdBy?.name
+                ? subTicket.createdBy.name[0].toUpperCase()
+                : "U"}
+            </div>
+            <div>
+              <p className="font-semibold text-gray-800">
+                {subTicket?.createdBy?.name || "Anonymous"}
+              </p>
+              <span className="text-xs text-gray-500">
+                {new Date(subTicket?.createdAt).toLocaleDateString()}
+              </span>
+            </div>
           </div>
-          <div>
-            <p className="font-semibold text-gray-800">
-              {subTicket?.createdBy?.name || "Anonymous"}
-            </p>
-            <span className="text-xs text-gray-500">
-              {new Date(subTicket?.createdAt).toLocaleDateString()}
-            </span>
+          <div className="px-2">
+            <select
+              value={subTicketPriority}
+              onChange={(e) => {
+                setSubTicketPriority(e.target.value);
+                handlePriorityChangeForSubTicket(e.target.value);
+              }}
+              disabled={
+                !JSON.parse(localStorage.getItem("authState"))?.user?.isAdmin
+              }
+              className="border rounded-md px-2 py-1 text-sm disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
+            >
+              <option value="low">Low</option>
+              <option value="normal">Normal</option>
+              <option value="high">High</option>
+              <option value="urgent">Urgent</option>
+            </select>
           </div>
         </div>
         {/* Content */}
